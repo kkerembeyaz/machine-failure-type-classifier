@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Machine Failure Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --card-bg: rgba(255, 255, 255, 0.06);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #818cf8;
+      --accent-2: #a855f7;
+      --ok: #22c55e;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.25), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.22), transparent 45%),
+        linear-gradient(135deg, #0b1023 0%, #141b3d 45%, #2a1650 100%);
+      background-attachment: fixed;
+      padding: 48px 20px;
+    }
+
+    /* İnce teknik grid deseni */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    header { text-align: center; margin-bottom: 36px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(129, 140, 248, 0.12);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      padding: 6px 14px; border-radius: 999px; margin-bottom: 16px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    h1 {
+      font-size: clamp(26px, 4vw, 40px); font-weight: 800; letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, #c7d2fe 50%, #e9d5ff);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    header p { color: var(--muted); margin-top: 10px; font-size: 15px; }
+
+    .layout {
+      max-width: 1040px; margin: 0 auto;
+      display: grid; grid-template-columns: 1.05fr 1fr; gap: 24px; align-items: start;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .card h2 .icon {
+      width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    }
+
+    /* Form */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--muted); }
+    .field label span { color: #64748b; font-weight: 400; }
+
+    input[type=number] {
+      width: 100%;
+      font: inherit; font-size: 15px; color: var(--text);
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    input[type=number]:hover { border-color: rgba(148, 163, 184, 0.4); }
+    input[type=number]:focus {
+      border-color: var(--accent);
+      background: rgba(15, 23, 42, 0.85);
+      box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18);
+    }
+
+    /* Type için segmented kontrol */
+    .segmented {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: var(--radius); padding: 5px;
+    }
+    .segmented input { display: none; }
+    .segmented label {
+      text-align: center; padding: 9px 0; border-radius: 10px; cursor: pointer;
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      transition: background .2s, color .2s, box-shadow .2s;
+    }
+    .segmented label small { display: block; font-size: 11px; font-weight: 400; opacity: .75; }
+    .segmented input:checked + label {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 4px 14px rgba(129, 140, 248, 0.4);
+    }
+
+    button {
+      grid-column: 1 / -1;
+      margin-top: 6px;
+      font: inherit; font-size: 15px; font-weight: 600; color: #fff;
+      border: none; border-radius: var(--radius);
+      padding: 14px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      background-size: 150% 150%;
+      box-shadow: 0 8px 22px rgba(99, 102, 241, 0.35);
+      transition: transform .15s ease, box-shadow .25s ease, background-position .4s ease, filter .2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    button:hover {
+      background-position: 100% 0;
+      box-shadow: 0 12px 30px rgba(168, 85, 247, 0.5);
+      transform: translateY(-2px);
+    }
+    button:active { transform: translateY(1px) scale(0.98); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35); }
+    button:disabled { filter: saturate(.5) brightness(.85); cursor: wait; transform: none; }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+      animation: spin .7s linear infinite; display: none;
+    }
+    button.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Sonuç */
+    .placeholder {
+      text-align: center; color: var(--muted); padding: 48px 12px; font-size: 14px; line-height: 1.6;
+    }
+    .placeholder .big { font-size: 40px; margin-bottom: 10px; opacity: .6; }
+
+    .result { animation: slideIn .5s cubic-bezier(.2, .8, .2, 1) both; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .verdict {
+      border-radius: 16px; padding: 20px; margin-bottom: 22px;
+      border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, transparent), color-mix(in srgb, var(--c) 6%, transparent));
+      box-shadow: 0 0 30px color-mix(in srgb, var(--c) 20%, transparent);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .verdict .emoji {
+      width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px;
+      display: grid; place-items: center; font-size: 26px;
+      background: color-mix(in srgb, var(--c) 25%, transparent);
+    }
+    .verdict .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .verdict .name { font-size: 22px; font-weight: 800; color: var(--c); margin-top: 2px; }
+    .verdict .desc { font-size: 13px; color: var(--text); opacity: .8; }
+    .verdict .conf { margin-left: auto; text-align: right; }
+    .verdict .conf b { font-size: 24px; font-weight: 800; display: block; }
+    .verdict .conf span { font-size: 11px; color: var(--muted); }
+
+    .probs-title { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 14px; }
+    .prob { margin-bottom: 14px; }
+    .prob-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .prob-head .n { font-weight: 600; }
+    .prob-head .n small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+    .prob-head .v { font-variant-numeric: tabular-nums; color: var(--muted); }
+    .prob.top .prob-head .v { color: var(--c); font-weight: 700; }
+    .bar { height: 10px; border-radius: 999px; background: rgba(148, 163, 184, 0.12); overflow: hidden; }
+    .bar > div {
+      height: 100%; width: 0; border-radius: inherit;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--c) 70%, #000 0%), var(--c));
+      box-shadow: 0 0 12px color-mix(in srgb, var(--c) 50%, transparent);
+      transition: width .9s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fecaca; padding: 14px 16px; border-radius: var(--radius); font-size: 14px;
+    }
+
+    footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 32px; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 28px 14px; }
+      .card { padding: 20px; border-radius: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .verdict { flex-wrap: wrap; }
+      .verdict .conf { margin-left: 0; text-align: left; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="badge"><span class="dot"></span>Predictive Maintenance · AI4I 2020</div>
+    <h1>Machine Failure Type Classifier</h1>
+    <p>Sensör değerlerini girin, model olası arıza türünü tahmin etsin.</p>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <h2><span class="icon">⚙️</span>Makine Parametreleri</h2>
+      <form id="f" class="grid">
+        <div class="field full">
+          <label>Ürün Kalitesi (Type)</label>
+          <div class="segmented">
+            <input type="radio" name="Type" id="tL" value="L"><label for="tL">L<small>Low</small></label>
+            <input type="radio" name="Type" id="tM" value="M" checked><label for="tM">M<small>Medium</small></label>
+            <input type="radio" name="Type" id="tH" value="H"><label for="tH">H<small>High</small></label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="air">Air temperature <span>[K]</span></label>
+          <input id="air" name="Air_temperature" type="number" step="any" value="298.1" required>
+        </div>
+        <div class="field">
+          <label for="proc">Process temperature <span>[K]</span></label>
+          <input id="proc" name="Process_temperature" type="number" step="any" value="308.6" required>
+        </div>
+        <div class="field">
+          <label for="rpm">Rotational speed <span>[rpm]</span></label>
+          <input id="rpm" name="Rotational_speed" type="number" step="any" value="1551" required>
+        </div>
+        <div class="field">
+          <label for="tq">Torque <span>[Nm]</span></label>
+          <input id="tq" name="Torque" type="number" step="any" value="42.8" required>
+        </div>
+        <div class="field full">
+          <label for="tw">Tool wear <span>[min]</span></label>
+          <input id="tw" name="Tool_wear" type="number" step="any" value="0" required>
+        </div>
+        <button type="submit" id="btn"><span class="spinner"></span><span class="txt">Tahmin Et</span></button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2><span class="icon">📊</span>Tahmin Sonucu</h2>
+      <div id="out">
+        <div class="placeholder">
+          <div class="big">🔍</div>
+          Henüz tahmin yapılmadı.<br>Parametreleri girip <b>Tahmin Et</b>'e tıklayın.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>FastAPI · PyTorch · <a href="/docs">API Docs</a></footer>
+
+  <script>
+    const CLASSES = {
+      "No Failure": { color: "#22c55e", emoji: "✅", desc: "Arıza beklenmiyor" },
+      "TWF":        { color: "#f97316", emoji: "🔧", desc: "Tool Wear Failure" },
+      "HDF":        { color: "#ef4444", emoji: "🔥", desc: "Heat Dissipation Failure" },
+      "PWF":        { color: "#f59e0b", emoji: "⚡", desc: "Power Failure" },
+      "OSF":        { color: "#f43f5e", emoji: "🏋️", desc: "Overstrain Failure" },
+      "RNF":        { color: "#fb923c", emoji: "🎲", desc: "Random Failure" },
+    };
+    const meta = (n) => CLASSES[n] || { color: "#818cf8", emoji: "❔", desc: "" };
+
+    const form = document.getElementById('f');
+    const btn = document.getElementById('btn');
+    const out = document.getElementById('out');
+
+    function render(res) {
+      const m = meta(res.prediction);
+      const top = res.probabilities[res.prediction] ?? 0;
+      const rows = Object.entries(res.probabilities)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, p]) => {
+          const c = meta(name);
+          return `
+            <div class="prob ${name === res.prediction ? 'top' : ''}" style="--c:${c.color}">
+              <div class="prob-head">
+                <span class="n">${name}<small>${c.desc}</small></span>
+                <span class="v">${(p * 100).toFixed(1)}%</span>
+              </div>
+              <div class="bar"><div data-w="${(p * 100).toFixed(2)}"></div></div>
+            </div>`;
+        }).join('');
+
+      out.innerHTML = `
+        <div class="result">
+          <div class="verdict" style="--c:${m.color}">
+            <div class="emoji">${m.emoji}</div>
+            <div>
+              <div class="label">Tahmin</div>
+              <div class="name">${res.prediction}</div>
+              <div class="desc">${m.desc}</div>
+            </div>
+            <div class="conf"><b>${(top * 100).toFixed(1)}%</b><span>güven</span></div>
+          </div>
+          <div class="probs-title">Sınıf Olasılıkları</div>
+          ${rows}
+        </div>`;
+
+      // Bar animasyonu: önce 0 genişlikte çiz, sonra hedef genişliğe geç
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        out.querySelectorAll('.bar > div').forEach(el => el.style.width = el.dataset.w + '%');
+      }));
+    }
+
+    function renderError(msg) {
+      out.innerHTML = `<div class="result"><div class="error">⚠️ ${msg}</div></div>`;
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form), body = {};
+      for (const [k, v] of fd) body[k] = k === 'Type' ? v : parseFloat(v);
+
+      btn.disabled = true; btn.classList.add('loading');
+      btn.querySelector('.txt').textContent = 'Tahmin ediliyor...';
+      try {
+        const r = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : `HTTP ${r.status}`);
+        render(data);
+      } catch (err) {
+        renderError(err.message);
+      } finally {
+        btn.disabled = false; btn.classList.remove('loading');
+        btn.querySelector('.txt').textContent = 'Tahmin Et';
+      }
+    };
+  </script>
+</body>
+</html>
