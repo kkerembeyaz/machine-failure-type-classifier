@@ -1,5 +1,11 @@
 # Machine Failure Type Classifier
 
+[![Live Demo](https://img.shields.io/badge/Demo-Canl%C4%B1%20Uygulamay%C4%B1%20A%C3%A7-brightgreen?style=for-the-badge&logo=render)](https://machine-failure-type-classifier.onrender.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch)](https://pytorch.org)
+
+> 🚀 **Canlı Uygulama:** Modeli tarayıcınız üzerinden hemen denemek için **[machine-failure-type-classifier.onrender.com](https://machine-failure-type-classifier.onrender.com)** adresini ziyaret edebilirsiniz.
+
 AI4I 2020 Predictive Maintenance veri seti üzerine kurulmuş, PyTorch ile eğitilmiş bir **multiclass classification** modeli ve bu modeli servis eden bir **FastAPI web uygulaması**. Proje, bir makinenin sensör verilerine (sıcaklık, devir, tork, takım aşınması, ürün kalite sınıfı) bakarak hiç arıza olup olmadığını, varsa hangi türden bir arıza olduğunu tahmin ediyor.
 
 ---
