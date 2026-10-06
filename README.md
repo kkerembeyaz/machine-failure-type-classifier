@@ -187,7 +187,7 @@ Geri yüklerken, model mimarisinin (`FailureClassifier` sınıfı) `state_dict`'
 
 ## Web Uygulaması
 
-FastAPI ile geliştirildi (kod üretimi için Antigravity kullanıldı, model entegrasyonu ve doğrulaması elle yapıldı). Arayüz, ayrı HTML/CSS/JS dosyaları yerine `HTMLResponse` ile Python içine gömülü — küçük ölçekli bir proje için geçerli ve basit bir tercih.
+FastAPI ile geliştirildi (kod üretimi için Antigravity kullanıldı, model entegrasyonu ve doğrulaması elle yapıldı). Arayüz ayrı bir dosyada (`templates/index.html`) tutuluyor ve `/` endpoint'i tarafından sunuluyor. Tahmin sonucu sınıfa göre renk kodlamasıyla gösteriliyor, her sınıfın olasılığı da progress bar olarak görselleştiriliyor.
 
 **`/predict` endpoint'inin preprocessing sırası (eğitimdekiyle birebir aynı olmalı):**
 
@@ -230,4 +230,3 @@ uvicorn app:app --reload
 - Class weight'leri elle ayarlamak yerine, **SMOTE** gibi oversampling tekniklerini ya da **focal loss** gibi dengesizliğe özel loss fonksiyonlarını denemek.
 - `hidden_dim`'i artırıp (örneğin 32) daha fazla epoch ile eğitip, val/test loss eğrisinin plato yaptığı noktayı (ve varsa overfitting başlangıcını) daha sistematik incelemek.
 - RNF dışındaki sınıflar için confusion matrix'teki en çok karışan çiftleri (örneğin HDF↔OSF gibi) ayrıca inceleyip, bu karışıklığı azaltacak ek feature engineering (örneğin dokümantasyondaki kurallara daha yakın türetilmiş özellikler: sıcaklık farkı, güç, tork×aşınma) denemek.
-- Web app'e, modelin tahminine ne kadar "emin" olduğunu (olasılık dağılımını) kullanıcıya daha görsel şekilde (progress bar, renk kodlama) sunmak.
